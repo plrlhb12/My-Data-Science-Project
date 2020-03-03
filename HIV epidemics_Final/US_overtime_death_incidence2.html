@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {  width: 90%;
+                    margin: auto;
+                    font-family: Helvetica;
+            }
+            svg {
+                    width: 500px;
+                    height:400px;
+            }
+            h2 {
+                    text-align: center;
+            }
+            .line {
+                    fill: none;
+                    stroke-width: 2px;
+                    opacity: .6;
+            }
+            .axis_x path,
+            .axis_x line {
+                  fill: none;
+                  stroke: #333;
+            }
+  
+           }
+           .axis_x {
+              font-size: 14px;
+           }
+
+           .grid line {
+              stroke: lightgrey;
+              stroke-opacity: 0.7;
+              shape-rendering: crispEdges;
+
+            }
+
+            .grid path {
+              stroke-width: 0;
+            }
+
+          div.tooltip { 
+    position: absolute;     
+    text-align: center;     
+    width: 100px;          
+    height: 25px;         
+    padding: 2px;       
+    font: 12px sans-serif;    
+    background: #ffcccc; 
+    border: 0px;    
+    border-radius: 8px;     
+    pointer-events: none;     
+    }
+
+    .add_space{
+      height: 50px;
+    }
+        </style>
+    </head>
+
+    <body>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+
+     <div style="text-align: center;"><h2>HIV trend of prevalence, incidence, and death in US</h2></div>
+
+      <div id="highlight" style="background-color: #f2f2f2; padding:20px;">
+        <p>Highlights:</p>
+        <ul>
+          <ls><p> * The number of new diagnosed cases in US declined during the past several years.</ls><br/>
+          <ls><p> * Death rate of HIV decreased slightly.</ls><br/>
+          <ls><p>* The number of the population living with HIV increased over time.</p></ls>
+        </ul>
+      </div>
+
+      <div class = "add_space"></div>
+
+     <script>
+            // add a header
+  
+            // d3.select("body").append("h4")
+            //         .text("Here is Death and Incidence");
+
+            // Define the div for the tooltip
+            var div = d3.select("body").append("div") 
+                .attr("class", "tooltip")       
+                .style("opacity", 0);
+
+
+
+            // set the dimensions and margins of the graph
+            var margin = {top: 20, right: 50, bottom: 20, left: 50},
+            width = 350 -margin.right;
+            height = 250 - margin.top - margin.bottom;
+
+            var parseDate=d3.timeParse("%Y");
+            var formatTime = d3.timeFormat("%Y");
+
+            var svg1 = d3.select("body").append("svg").attr("class", "US_death_incidence")
+          
+            var timeGroup = svg1.append("g")
+                    .attr("class", "line_graph")
+                    .attr("transform", "translate(" + margin.left +", 0)");
+
+              svg1.append("text")
+                        .attr("text-anchor", "middle")  // this makes it easy to centre the text as the 
+                        .attr("transform", "translate(" + (width-40) + " , "+(height+60)+")") 
+                        .attr("font-size", 15)
+                        .text("Incidence and Death");
+
+            // get the data and make line graph 1
+            var dataset;
+
+
+            d3.csv("USA__hiv_overtime.csv", function(data) {
+                dataset = data
+                data.forEach(function(d) {
+                            d.Year=parseDate(d.Year)
+                            d.Death=+d.Death;
+                            d.Incidence=+d.Incidence;
+                            });
+                
+                //time
+                var x = d3.scaleTime()
+                        .domain(d3.extent(data,function(d) { return d.Year;}))
+                        .range([0,width])
+                   
+
+                var y = d3.scaleLinear()
+                        .domain([0, d3.max(data,function(d){ return Math.max(d.Death,d.Incidence);})])
+                        .range([height, 10]);
+
+
+                // gridlines in x axis function
+                  function make_y_gridlines() {   
+                          return d3.axisLeft(y)
+                                .ticks(5)
+                        }
+
+                // define the 1st line
+                var valueline1 = d3.line()
+                    .x(function(d) { return x(d.Year); })
+                    .y(function(d) { return y(d.Death); });
+                
+                // define the 2st line
+                var valueline2 = d3.line()
+                    .x(function(d) { return x(d.Year); })
+                    .y(function(d) { return y(d.Incidence); });     
+
+
+    
+        
+                // Add the valueline path.
+                timeGroup.append("path")
+                      .datum(dataset)
+                      .attr("class", "line")
+                      .attr("d", valueline1)
+                      .attr("stroke","blue")
+                      .attr("stroke-linejoin", "round")
+                      .attr("stroke-linecap", "round")
+                      .attr("stroke-width", 1.5)
+                      .attr("transform", "translate(" + margin.left +", 0)");
+
+                timeGroup.selectAll("dot")
+                      .data(dataset)
+                      .enter()
+                      .append("circle")
+                      .attr("cx", function (d){return x(d.Year);})
+                      .attr("cy", function (d){return y(d.Incidence);})
+                      .attr("r", 3.5)
+                      .attr("fill","red")
+                      .attr("transform", "translate(" + margin.left +", 0)")
+                      .on("mouseover", function(d) {    
+                              div.transition()    
+                                  .duration(200)    
+                                  .style("opacity", .9);    
+                              div .html("Year:" +" " +formatTime(d.Year) + "<br/>"  + "Rate:"+" " +d.Incidence)  
+                                  .style("left", (d3.event.pageX) + "px")   
+                                  .style("top", (d3.event.pageY - 28) + "px");  
+                          })     
+                      .on("mouseout", function(d) {   
+                              div.transition()    
+                                .duration(500)    
+                                .style("opacity", 0); 
+                      });;
+
+
+                 timeGroup.selectAll("dot")
+                      .data(dataset)
+                      .enter()
+                      .append("circle")
+                      .attr("cx", function (d){return x(d.Year);})
+                      .attr("cy", function (d){return y(d.Death);})
+                      .attr("r", 4)
+                      .attr("fill","blue")
+                      .attr("transform", "translate(" + margin.left +", 0)")
+                      .on("mouseover", function(d) {    
+                              div.transition()    
+                                  .duration(500)    
+                                  .style("opacity", .9);    
+                              div .html("Year:" +" " +formatTime(d.Year) + "<br/>"  + "Rate:"+" " +d.Death)  
+                                  .style("left", (d3.event.pageX) + "px")   
+                                  .style("top", (d3.event.pageY - 28) + "px");  
+                          })          
+                      .on("mouseout", function(d) {   
+                              div.transition()    
+                                .duration(500)    
+                                .style("opacity", 0); 
+                      });
+
+
+ 
+                timeGroup.append("text")
+                      .attr("transform", "translate("+width+","+(y(data[data.length-1].Death)-10)+")")
+                      .attr("text-anchor", "start")
+                      .style("fill", "blue")
+                      .attr("font-size","14")
+                      .text("Death");      
+                
+                // Add the valueline2 path.
+                timeGroup.append("path")
+                      .data([data])
+                      .attr("class", "line")
+                      .attr("d", valueline2)
+                      .attr("stroke","red")
+                      .attr("transform", "translate(" + margin.left +", 0)"); 
+
+
+                timeGroup.append("text")
+                      .attr("transform", "translate("+width+","+(y(data[data.length-1].Incidence)-10)+")")
+                      .attr("text-anchor", "start")
+                      .style("fill", "red")
+                      .attr("font-size","14")
+                      .text("Incidence");           
+
+                // Add the X Axis
+                timeGroup.append("g")
+                        .attr("class", "axis_x")
+                        .attr("transform", "translate(" + margin.left + "," + height + ")")
+                        .call(d3.axisBottom(x).ticks(6));
+
+                // // text label for the x axis
+                // timeGroup.append("text")             
+                //       .attr("transform","translate(" + (width/2+150) + " ," + (height + margin.top + 20) + ")")
+                //       .style("text-anchor", "middle")
+                //       .text("Years")
+                //       .attr("font-size",15);        
+
+   
+                 // Add the Y Axis
+                timeGroup.append("g")
+                         .attr("class", "axis_y")
+                         .attr("transform", "translate(" + margin.left + ",0)")
+                         .call(d3.axisLeft(y).ticks(4));
+
+
+                 timeGroup.append("text")
+                        .attr("text-anchor", "middle")  // this makes it easy to centre the text as the 
+                        .attr("transform", "translate(20,"+(height/2)+")rotate(-90)") 
+                        .attr("font-size", "14")
+                        .text("Rate per 100,000");
+
+
+                timeGroup.append("g")     
+      .attr("class", "grid")
+      .attr("transform", "translate(" + margin.left+ ",0)")
+      .call(make_y_gridlines()
+          .tickSize(-width)
+          .tickFormat("")
+          .scale(y)
+      )
+
+
+
+
+
+
+
+
+     });
+
+
+              // make line graph 2
+              // get data for chart2
+
+            var svg2 = d3.select("body").append("svg").attr("class", "prevalence")
+
+            svg2.append("text")
+                        .attr("text-anchor", "middle")  // this makes it easy to centre the text as the 
+                        .attr("transform", "translate(" + (width-30) + " , "+(height+60)+")") 
+                        .attr("font-size", 15)
+                        .text("Living population with HIV");
+
+            var timeGroup2 = svg2.append("g")
+                    .attr("class", "line_graph")
+                    .attr("transform", "translate(" + margin.left +", 0)");
+
+            var dataset;
+
+
+            d3.csv("USA__hiv_overtime.csv", function(data) {
+                dataset = data
+                data.forEach(function(d) {
+                            d.Year=parseDate(d.Year)
+                            d.Prevalance=+d.Prevalance;
+                            });
+                
+                //time
+                var x = d3.scaleTime()
+                        .domain(d3.extent(data,function(d) { return d.Year;}))
+                        .range([0,width])
+                   
+
+                var y = d3.scaleLinear()
+                        .domain([0, d3.max(data,function(d){ return Math.max(d.Prevalance);})])
+                        .range([height, 10]);
+
+                // define the line
+                var valueline3 = d3.line()
+                    .x(function(d) { return x(d.Year); })
+                    .y(function(d) { return y(d.Prevalance); });
+
+
+                    // define function for drawing grids
+                  function make_y_gridlines() {   
+                          return d3.axisLeft(y)
+                                .ticks(5)
+                        }
+                
+        
+                // Add the valueline path.
+                timeGroup2.append("path")
+                      .datum(dataset)
+                      .attr("class", "line")
+                      .attr("d", valueline3)
+                      .attr("stroke","green")
+                      .attr("stroke-linejoin", "round")
+                      .attr("stroke-linecap", "round")
+                      .attr("stroke-width", 1.5)
+                      .attr("transform", "translate(" + margin.left +", 0)");
+
+                timeGroup2.selectAll("dot")
+                      .data(dataset)
+                      .enter()
+                      .append("circle")
+                      .attr("cx", function (d){return x(d.Year);})
+                      .attr("cy", function (d){return y(d.Prevalance);})
+                      .attr("r", 3.5)
+                      .attr("fill","green")
+                      .attr("transform", "translate(" + margin.left +", 0)")
+                      .on("mouseover", function(d) {    
+                              div.transition()    
+                                  .duration(500)    
+                                  .style("opacity", .9);    
+                              div .html("Year:" +" " +formatTime(d.Year) + "<br/>"  + "Rate:"+" " +d.Prevalance)  
+                                  .style("left", (d3.event.pageX) + "px")   
+                                  .style("top", (d3.event.pageY - 28) + "px");  
+                          })          
+                      .on("mouseout", function(d) {   
+                              div.transition()    
+                                .duration(500)    
+                                .style("opacity", 0); 
+                      });;
+
+                  // add legend
+                timeGroup2.append("text")
+                      .attr("transform", "translate("+ (width-15) +", "+ (height - 170) + ")")
+                      .attr("text-anchor", "start")
+                      .style("fill", "green")
+                      .attr("font-size","14")
+                      .text("Prevalence");      
+                
+               
+                // Add the X Axis
+                timeGroup2.append("g")
+                        .attr("class", "axis_x")
+                        .attr("transform", "translate(" + margin.left + "," + height + ")")
+                        .call(d3.axisBottom(x).ticks(6));
+
+                // // text label for the x axis
+                // timeGroup2.append("text")             
+                //       .attr("transform","translate(" + (width/2+150) + " ," + (height + margin.top + 20) + ")")
+                //       .style("text-anchor", "middle")
+                //       .text("Years")
+                //       .attr("font-size",15);        
+
+   
+                 // Add the Y Axis
+                timeGroup2.append("g")
+                         .attr("class", "axis_y")
+                         .attr("transform", "translate(" + margin.left + ",0)")
+                         .call(d3.axisLeft(y).ticks(4));
+
+
+                 timeGroup2.append("text")
+                        .attr("text-anchor", "middle")  // this makes it easy to centre the text as the 
+                        .attr("transform", "translate(10,"+(height/2)+")rotate(-90)") 
+                        .attr("font-size", "14")
+                        .text("Rate per 100,000");
+
+
+                timeGroup2.append("g")     
+                        .attr("class", "grid")
+                        .attr("transform", "translate(" + margin.left+ ",0)")
+                        .call(make_y_gridlines()
+                        .tickSize(-width)
+                        .tickFormat(" ")
+                        .scale(y)
+      )
+     });
+
+            </script> 
+
+    </body>
+</html>

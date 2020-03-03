@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+        .arc text {
+            font: 12px sans-serif;
+            text-anchor: middle;
+            fill: #2F4F4F;
+        }
+
+        .arc path {
+            stroke: #fff;
+        }
+
+        .title {
+            fill: teal;
+            font-weight: bold;
+        }
+        #tooltip,  #tooltip2, #tooltip3{
+        position: absolute;
+        width: 140px;
+        height: auto;
+        padding: 10px;
+        background-color: white;
+        -webkit-border-radius: 10px;
+        -moz-border-radius: 10px;
+        border-radius: 10px;
+        -webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        -moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+      }
+      
+      #tooltip.hidden, #tooltip2.hidden, #tooltip3.hidden {
+        display: none;
+      }
+      
+      #tooltip p, #tooltip2 p, #tooltip3 p {
+        margin: 0;
+        font-family: sans-serif;
+        font-size: 12px;
+        line-height: 20px;
+      }
+        #group1, #group2, #group3 {
+            font: 15px sans-serif;
+            fill: #1E90FF;
+        }
+        </style>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+    
+    </head>
+
+    <body>
+            
+        <svg width="1200" height="400"></svg>
+        <div style="text-align: center;"><h3>HIV populations grouped by age, gender, and race in 2017</h3></div>
+
+      <div id="tooltip" class="hidden">
+      <p><strong>Age Group: </strong><span id="age"><strong>Important Label Heading</strong></p>
+      <p><strong>Rate(per 100,000): </strong><span id="value">100</span></p>
+      </div>
+
+      <div id="tooltip2" class="hidden">
+      <p><strong>Gender: </strong><span id="gender"><strong>Important Label Heading</strong></p>
+      <p><strong>Rate(per 100,000): </strong><span id="value">100</span></p>
+      </div>
+
+      <div id="tooltip3" class="hidden">
+      <p><strong>Race: </strong><span id="race"><strong>Important Label Heading</strong></p>
+      <p><strong>Rate(per 100,000): </strong><span id="value">100</span></p>
+      </div>
+
+      <div id="highlight" style="background-color: #f2f2f2; padding:20px;">
+        <p>Highlights:</p>
+        <ul>
+          <ls><p> * Young adults accounts for more than 50% of the HIV population.</ls><br/>
+          <ls><p> * Male HIV population is much more than female.</p></ls>
+          <ls><p> * African Americans and Hispanics/Latinos are disproportionately affected by HIV.</ls><br/>
+         
+        </ul>
+      </div>
+    
+     <script>
+        
+        var svg = d3.select("svg");
+        var width = 300;
+        var height = 300;
+        var radius = Math.min(width, height) / 4;
+        
+        var g = svg.append("g")
+                    .attr("height", 300)
+                    .attr("width", 300)
+                   .attr("transform", "translate(" + (width-50) + "," + height /2 + ")");
+
+        // generate the first pie chart
+        //var color1 = d3.scaleOrdinal(['#4daf4a','#377eb8','#ff7f00','#984ea3','#e41a1c']);
+        //var color1 = d3.scaleOrdinal(["#A07A19", "#AC30C0", "#EB9A72", "#BA86F5", "#EA22A8"]);
+        
+
+        var color = d3.scaleOrdinal(d3.schemeCategory20c);
+
+        var pie = d3.pie().value(function(d) { 
+                return d.Rate; 
+            });
+
+        var path = d3.arc()
+                     .outerRadius(radius - 10)
+                     .innerRadius(width/3);
+
+        var label = d3.arc()
+                      .outerRadius(radius)
+                      .innerRadius(radius+60);
+
+
+        d3.csv("US_hiv_2017_age.csv", function(error, data) {
+            if (error) {
+                throw error;
+            }
+            var arc = g.selectAll(".arc")
+                       .data(pie(data))
+                       .enter().append("g")
+                       .attr("class", "arc");
+
+            arc.append("text") 
+                        // .attr("font-size", 15)
+                        .attr("id", "group1")
+                        .attr("transform", "translate(0 ,150)") 
+                        .text("Incidence by Age");
+
+            arc.append("path")
+               .attr("d", path)
+               .attr("fill", function(d) { return color(d.data.Age); })
+               .on("mouseover", function(d) {
+
+          //Get this bar's x/y values, then augment for the tooltip
+          var xPosition = 50;
+          var yPosition = 50;
+
+          //Update the tooltip position and value
+          d3.select("#tooltip")
+            .style("left", xPosition + "px")
+            .style("top", yPosition + "px")           
+            .select("#age")
+            .text(d.data.Age);
+
+          d3.select("#tooltip")
+            .style("left", xPosition + "px")
+            .style("top", yPosition + "px")   
+            .select("#value")
+            .text(d.data.Rate);
+         
+          //Show the tooltip
+          d3.select("#tooltip").classed("hidden", false);
+
+         })
+         .on("mouseout", function() {
+         
+          //Hide the tooltip
+          d3.select("#tooltip").classed("hidden", true);
+    
+         });
+               // set up the interactivity
+            
+        
+            console.log(arc)
+        
+            arc.append("text")
+               .attr("class", "labels")
+               .attr("transform", function(d) { 
+                        return "translate(" + label.centroid(d) + ")"; 
+                })
+               .text(function(d) { return "Age: " + d.data.Age; });
+
+            });
+
+
+        // the second pie chart
+        var g2 = svg.append("g")
+                   .attr("transform", "translate(" + (width+250) + "," + height /2 + ")");
+
+        var pie2 = d3.pie().value(function(d) { 
+                return d.Rate; 
+            });
+
+        var path2 = d3.arc()
+                     .outerRadius(radius - 10)
+                     .innerRadius(width/3);
+
+        var label2 = d3.arc()
+                      .outerRadius(radius)
+                      .innerRadius(radius+10);
+
+        var color2 = d3.scaleOrdinal(['#17becf','#f7b6d2']);
+        d3.csv("US_hiv_2017_gender.csv", function(error, data) {
+            if (error) {
+                throw error;
+            }
+            var arc2 = g2.selectAll(".arc")
+                       .data(pie(data))
+                       .enter().append("g")
+                       .attr("class", "arc");
+
+            arc2.append("text")
+                        .attr("id", "group2")
+                        // .attr("font-size", 15)
+                        .attr("transform", "translate(0 ,150)") 
+                        .text("Incidence by Gender");
+                        
+            arc2.append("path")
+               .attr("d", path2)
+               .attr("fill", function(d) { return color2(d.data.Gender); })
+               .on("mouseover", function(d) {
+
+          //Update the tooltip position and value
+          d3.select("#tooltip2")
+            .style("left", "350px")
+            .style("top", "20px")           
+            .select("#gender")
+            .text(d.data.Gender);
+
+          d3.select("#tooltip2")
+            .style("left",  "350px")
+            .style("top",  "20px")   
+            .select("#value")
+            .text(d.data.Rate);
+         
+          //Show the tooltip
+          d3.select("#tooltip2").classed("hidden", false);
+
+         })
+         .on("mouseout", function() {
+         
+          //Hide the tooltip
+          d3.select("#tooltip2").classed("hidden", true);
+    
+         });
+     
+        
+            console.log(arc2)
+        
+            arc2.append("text")
+               .attr("transform", function(d) { 
+                        return "translate(" + label2.centroid(d) + ")"; 
+                })
+               .text(function(d) { return  d.data.Gender; });
+            });
+
+
+        // the third pie chart
+        
+        var g3 = svg.append("g")
+                   .attr("transform", "translate(" + (width+600) + "," + height /2 + ")");
+
+        var pie3 = d3.pie().value(function(d) { 
+                return d.Rate; 
+            });
+
+        var path3 = d3.arc()
+                     .outerRadius(radius - 10)
+                     .innerRadius(width/3);
+
+        var label3 = d3.arc()
+                      .outerRadius(radius)
+                      .innerRadius(radius+70);
+
+        //var color = d3.scaleOrdinal(['#cf2030', '#7f7f7f', '#74c476', '#ffcc00', '#17becf', '#ff7300', '#e377c2']);
+
+        d3.csv("US_hiv_2017_race.csv", function(error, data) {
+            if (error) {
+                throw error;
+            }
+            var arc3 = g3.selectAll(".arc")
+                       .data(pie(data))
+                       .enter().append("g")
+                       .attr("class", "arc");
+
+              arc3.append("text") 
+                        .attr("transform", "translate(0 ,150)")
+                        .attr("id", "group3") 
+                        // .attr("font-size", 15)
+                        .text("Incidence by Race");
+
+            arc3.append("path")
+               .attr("d", path3)
+               .attr("fill", function(d) { return color(d.data.Race); })
+               .on("mouseover", function(d) {
+
+          //Get this bar's x/y values, then augment for the tooltip
+        
+
+          //Update the tooltip position and value
+          d3.select("#tooltip3")
+            .style("right", "100px")
+            .style("top", "20px")           
+            .select("#race")
+            .text(d.data.Race);
+
+          d3.select("#tooltip3")
+            .style("right",  "100px")
+            .style("top",  "20px")   
+            .select("#value")
+            .text(d.data.Rate);
+         
+          //Show the tooltip
+          d3.select("#tooltip3").classed("hidden", false);
+
+         })
+         .on("mouseout", function() {
+         
+          //Hide the tooltip
+          d3.select("#tooltip3").classed("hidden", true);
+    
+         });
+        
+            console.log(arc3)
+        
+            arc3.append("text")
+               .attr("transform", function(d) { 
+                        return "translate(" + label3.centroid(d) + ")"; 
+                })
+               .text(function(d) { return  d.data.Race; });
+            });
+
+
+        </script>
+    </body>
+</html>
